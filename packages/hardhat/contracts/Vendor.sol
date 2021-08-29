@@ -2,7 +2,6 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 import "./YourToken.sol";
 
 contract Vendor is Ownable {
@@ -25,7 +24,12 @@ contract Vendor is Ownable {
     BuyTokens(msg.sender, msg.value, amount);
   }
 
-  // ToDo: create a sellTokens() function:
+  function sellTokens(uint256 amount) public {
+    require(amount <= yourToken.balanceOf(msg.sender), "Not enough tokens");
+    require(amount <= address(this).balance * tokensPerEth, "Not enough eth of Vender");
+    yourToken.transferFrom(msg.sender, address(this), amount);
+    address(msg.sender).call{value: amount / tokensPerEth}("");
+  }
 
   function withdraw() public onlyOwner {
     address(msg.sender).call{value: address(this).balance}("");
