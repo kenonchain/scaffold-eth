@@ -54,10 +54,10 @@ const humanizeDuration = require("humanize-duration");
 */
 
 /// 📡 What chain are your contracts deployed to?
-const targetNetwork = NETWORKS["localhost"]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const targetNetwork = NETWORKS["ropsten"]; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
-const DEBUG = true;
+const DEBUG = false;
 
 // 🛰 providers
 if (DEBUG) console.log("📡 Connecting to Mainnet Ethereum");
@@ -142,6 +142,8 @@ function App(props) {
 
   const tokensPerEth = useContractReader(readContracts, "Vendor", "tokensPerEth");
   console.log("🏦 tokensPerEth:", tokensPerEth ? tokensPerEth.toString() : "...");
+
+  const allowance = useContractReader(readContracts, "YourToken", "allowance", [address, vendorAddress]);
 
   // const complete = useContractReader(readContracts,"ExampleExternalContract", "completed")
   // console.log("✅ complete:",complete)
@@ -239,15 +241,20 @@ function App(props) {
   console.log("📟 buyTokensEvents:", buyTokensEvents);
 
   const [tokenBuyAmount, setTokenBuyAmount] = useState();
+  const [tokenSellAmount, setTokenSellAmount] = useState();
 
   const ethCostToPurchaseTokens =
     tokenBuyAmount && tokensPerEth && parseEther("" + tokenBuyAmount / parseFloat(tokensPerEth));
-  console.log("ethCostToPurchaseTokens:", ethCostToPurchaseTokens);
+
+  const ethGetToSellTokens =
+    tokenSellAmount && tokensPerEth && parseEther("" + tokenSellAmount / parseFloat(tokensPerEth));
 
   const [tokenSendToAddress, setTokenSendToAddress] = useState();
   const [tokenSendAmount, setTokenSendAmount] = useState();
 
   const [buying, setBuying] = useState();
+  const [selling, setSelling] = useState();
+  const [approving, setApproving] = useState();
 
   let transferDisplay = "";
   if (yourTokenBalance) {
@@ -330,7 +337,18 @@ function App(props) {
             {transferDisplay}
             <Divider />
             <div style={{ padding: 8, marginTop: 32, width: 300, margin: "auto" }}>
-              <Card title="Buy Tokens" extra={<a href="#">code</a>}>
+              <Card
+                title="Buy Tokens"
+                extra={
+                  <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="https://rinkeby.etherscan.io/address/0x5bc2d660631cd3d074aa99c5692004235f6646cf#code"
+                  >
+                    code
+                  </a>
+                }
+              >
                 <div style={{ padding: 8 }}>{tokensPerEth && tokensPerEth.toNumber()} tokens per ETH</div>
 
                 <div style={{ padding: 8 }}>
@@ -358,6 +376,67 @@ function App(props) {
                     Buy Tokens
                   </Button>
                 </div>
+              </Card>
+            </div>
+
+            <div style={{ padding: 8, marginTop: 32, width: 300, margin: "auto" }}>
+              <Card
+                title="Sell Tokens"
+                extra={
+                  <a
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="https://rinkeby.etherscan.io/address/0x5bc2d660631cd3d074aa99c5692004235f6646cf#code"
+                  >
+                    code
+                  </a>
+                }
+              >
+                {allowance == 0 && (
+                  <Button
+                    type={"primary"}
+                    loading={approving}
+                    onClick={async () => {
+                      setApproving(true);
+                      const res = await tx(writeContracts.YourToken.approve(vendorAddress, parseEther('10000000')));
+                      console.log(res)
+                      setApproving(false);
+                    }}
+                  >
+                    Approve
+                  </Button>
+                )}
+
+{allowance != 0 && (<>
+                <div style={{ padding: 8 }}>{tokensPerEth && tokensPerEth.toNumber()} tokens per ETH</div>
+
+                <div style={{ padding: 8 }}>
+
+                  <Input
+                    style={{ textAlign: "center" }}
+                    placeholder={"amount of tokens to sell"}
+                    value={tokenSellAmount}
+                    onChange={e => {
+                      setTokenSellAmount(e.target.value);
+                    }}
+                  />
+                  <Balance balance={ethGetToSellTokens} dollarMultiplier={price} />
+                </div>
+
+                <div style={{ padding: 8 }}>
+                  <Button
+                    type={"primary"}
+                    loading={selling}
+                    onClick={async () => {
+                      setSelling(true);
+                      await tx(writeContracts.Vendor.sellTokens(parseEther(tokenSellAmount)));
+                      setSelling(false);
+                    }}
+                  >
+                    Sell Tokens
+                  </Button>
+                </div>
+</>)}
               </Card>
             </div>
 
@@ -502,11 +581,11 @@ function App(props) {
             {
               /*  if the local provider has a signer, let's show the faucet:  */
               localProvider &&
-              localProvider.connection &&
-              localProvider.connection.url &&
-              localProvider.connection.url.indexOf(window.location.hostname) >= 0 &&
-              !process.env.REACT_APP_PROVIDER &&
-              price > 1 ? (
+                localProvider.connection &&
+                localProvider.connection.url &&
+                localProvider.connection.url.indexOf(window.location.hostname) >= 0 &&
+                !process.env.REACT_APP_PROVIDER &&
+                price > 1 ? (
                 <Faucet localProvider={localProvider} price={price} ensProvider={mainnetProvider} />
               ) : (
                 ""
