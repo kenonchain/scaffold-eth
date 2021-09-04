@@ -14,7 +14,7 @@ contract YourCollectible is ERC721, Ownable {
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
 
-  constructor() public ERC721("Loogies", "LOOG") {
+  constructor() public ERC721("The B Project", "B") {
     // RELEASE THE LOOGIES!
   }
 

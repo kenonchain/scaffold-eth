@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.7.0;
 
+import "hardhat/console.sol";
 import 'base64-sol/base64.sol';
 import "@openzeppelin/contracts/utils/Strings.sol";
 import './HexStrings.sol';
 import './ToColor.sol';
+
 /// @title NFTSVG
 /// @notice Provides a function for generating an SVG associated with a Uniswap NFT
 library MetadataGenerator {
@@ -13,26 +15,36 @@ library MetadataGenerator {
   using HexStrings for uint160;
   using ToColor for bytes3;
 
+  function toBits(uint256 n) internal pure returns (uint256[] memory) {
+    uint256[] memory output = new uint256[](10);
+
+    for (uint8 i = 1; i <= 10; i++) {
+      output[10 - i] = (n % 2 == 1) ? 1 : 0;
+      n /= 2;
+    }
+
+    return output;
+}
+
   function generateSVGofTokenById(address owner, uint256 tokenId, bytes3 color, uint256 chubbiness) internal pure returns (string memory) {
 
+    uint256[] memory bits = toBits(tokenId);
+
     string memory svg = string(abi.encodePacked(
-      '<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">',
-        '<g id="eye1">',
-          '<ellipse stroke-width="3" ry="29.5" rx="29.5" id="svg_1" cy="154.5" cx="181.5" stroke="#000" fill="#fff"/>',
-          '<ellipse ry="3.5" rx="2.5" id="svg_3" cy="154.5" cx="173.5" stroke-width="3" stroke="#000" fill="#000000"/>',
-        '</g>',
-        '<g id="head">',
-          '<ellipse fill="#',
-          color.toColor(),
-          '" stroke-width="3" cx="204.5" cy="211.80065" id="svg_5" rx="',
-          chubbiness.toString(),
-          '" ry="51.80065" stroke="#000"/>',
-        '</g>',
-        '<g id="eye2">',
-          '<ellipse stroke-width="3" ry="29.5" rx="29.5" id="svg_2" cy="168.5" cx="209.5" stroke="#000" fill="#fff"/>',
-          '<ellipse ry="3.5" rx="3" id="svg_4" cy="169.5" cx="208" stroke-width="3" fill="#000000" stroke="#000"/>',
-        '</g>',
-      '</svg>'
+      '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
+        '<style>.base { fill: white; font-family: serif; font-size: 14px; }</style>',
+          '<rect width="100%" height="100%" fill="black" />',
+          '<text x="10" y="20" class="base">',bits[0].toString(),'</text>',
+          '<text x="10" y="40" class="base">',bits[1].toString(),'</text>',
+          '<text x="10" y="60" class="base">',bits[2].toString(),'</text>',
+          '<text x="10" y="80" class="base">',bits[3].toString(),'</text>',
+          '<text x="10" y="100" class="base">',bits[4].toString(),'</text>',
+          '<text x="10" y="120" class="base">',bits[5].toString(),'</text>',
+          '<text x="10" y="140" class="base">',bits[6].toString(),'</text>',
+          '<text x="10" y="160" class="base">',bits[7].toString(),'</text>',
+          '<text x="10" y="180" class="base">',bits[8].toString(),'</text>',
+          '<text x="10" y="200" class="base">',bits[9].toString(),'</text>',
+        '</svg>'
     ));
 
     return svg;
@@ -40,8 +52,8 @@ library MetadataGenerator {
 
   function tokenURI(address owner, uint256 tokenId, bytes3 color, uint256 chubbiness) internal pure returns (string memory) {
 
-      string memory name = string(abi.encodePacked('Loogie #',tokenId.toString()));
-      string memory description = string(abi.encodePacked('This Loogie is the color #',color.toColor(),' with a chubbiness of ',uint2str(chubbiness),'!!!'));
+      string memory name = string(abi.encodePacked('The B #',tokenId.toString()));
+      string memory description = string(abi.encodePacked('This B is #',tokenId.toString(),'!!!'));
       string memory image = Base64.encode(bytes(generateSVGofTokenById(owner, tokenId, color, chubbiness)));
 
       return
@@ -57,11 +69,7 @@ library MetadataGenerator {
                               description,
                               '", "external_url":"https://burnyboys.com/token/',
                               tokenId.toString(),
-                              '", "attributes": [{"trait_type": "color", "value": "#',
-                              color.toColor(),
-                              '"},{"trait_type": "chubbiness", "value": ',
-                              uint2str(chubbiness),
-                              '}], "owner":"',
+                              '", "attributes": [], "owner":"',
                               (uint160(owner)).toHexString(20),
                               '", "image": "',
                               'data:image/svg+xml;base64,',
